@@ -8,11 +8,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // Polyfill simple pour éviter que process.env ne fasse planter l'app si utilisé
-      'process.env': env
+      'process.env': env,
     },
     build: {
       outDir: 'dist',
-      sourcemap: false
-    }
+      sourcemap: false,
+    },
+    resolve: {
+      alias: {
+        '@google/genai': '/lib/genai-adapter.ts', // Rediriger vers l'adaptateur
+      },
+    },
   };
 });

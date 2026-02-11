@@ -1,0 +1,71 @@
+###############################################################################
+# Workflow CI pour le projet Mon-Premier-Appart
+#
+# Ce workflow automatise les vérifications de qualité du code :
+# - Lint : Vérifie les règles de code avec ESLint
+# - Typecheck : Vérifie les types TypeScript sans générer de fichiers
+# - Tests : Exécute les tests unitaires (si disponibles)
+# - Build : Compile le projet pour la production
+#
+# Déclenché sur : push et pull_request vers les branches main et dev
+#
+# Pour déployer en production : décommenter la section "deploy" ci-dessous
+###############################################################################
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type checking
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Run tests
+        run: npm run test -- --ci
+        continue-on-error: true
+
+      - name: Build project
+        run: npm run build
+
+      # Optionnel : Déploiement automatique si la branche est main
+      # Décommenter et configurer selon votre plateforme (Vercel, Firebase, etc.)
+      #
+      # - name: Deploy to production
+      #   if: github.ref == 'refs/heads/main' && matrix.node-version == '20.x'
+      #   run: |
+      #     # Pour Vercel :
+      #     # npm install -g vercel
+      #     # vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+      #     #
+      #     # Pour Firebase Hosting :
+      #     # npm install -g firebase-tools
+      #     # firebase deploy --only hosting --token=${{ secrets.FIREBASE_TOKEN }}
+      #     echo "Configure deployment here"
