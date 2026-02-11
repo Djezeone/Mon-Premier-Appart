@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { OnboardingProfile } from '../types';
 import { Check, ArrowRight, User, Home, Users, Baby } from 'lucide-react';
@@ -23,7 +22,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   return (
     <div className="fixed inset-0 z-50 bg-indigo-600 flex items-center justify-center p-6 text-white overflow-y-auto">
       <div className="w-full max-w-md my-auto">
-        
         {/* Step 1: Name */}
         {step === 1 && (
           <div className="animate-pop">
@@ -32,7 +30,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </div>
             <h1 className="text-3xl font-bold text-center mb-2">Bienvenue ! 👋</h1>
             <p className="text-indigo-200 text-center mb-8">Comment t'appelles-tu ?</p>
-            
+
             <input
               type="text"
               value={name}
@@ -56,13 +54,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {step === 2 && (
           <div className="animate-pop">
             <h1 className="text-3xl font-bold text-center mb-2">Enchanté, {name} !</h1>
-            <p className="text-indigo-200 text-center mb-8">Quel type de logement vas-tu habiter ?</p>
-            
+            <p className="text-indigo-200 text-center mb-8">
+              Quel type de logement vas-tu habiter ?
+            </p>
+
             <div className="space-y-3">
               <button
                 onClick={() => setType('studio')}
                 className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                  type === 'studio' ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
+                  type === 'studio'
+                    ? 'bg-white text-indigo-900 border-white'
+                    : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
                 }`}
               >
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
@@ -78,7 +80,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <button
                 onClick={() => setType('t2')}
                 className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                  type === 't2' ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
+                  type === 't2'
+                    ? 'bg-white text-indigo-900 border-white'
+                    : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
                 }`}
               >
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
@@ -94,7 +98,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <button
                 onClick={() => setType('coloc')}
                 className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                  type === 'coloc' ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
+                  type === 'coloc'
+                    ? 'bg-white text-indigo-900 border-white'
+                    : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
                 }`}
               >
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
@@ -107,10 +113,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 {type === 'coloc' && <Check size={24} className="text-green-500" />}
               </button>
 
-               <button
+              <button
                 onClick={() => setType('family')}
                 className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                  type === 'family' ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
+                  type === 'family'
+                    ? 'bg-white text-indigo-900 border-white'
+                    : 'bg-indigo-700/50 border-indigo-500 hover:bg-indigo-700'
                 }`}
               >
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">

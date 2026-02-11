@@ -237,6 +237,14 @@ firebase deploy --only hosting
 
 ## 🚀 Next steps pour la production
 
+### ⚠️ Notes importantes
+
+**Problèmes connus à résoudre avant déploiement :**
+
+1. Le package `@google/genai` utilisé dans `services/geminiService.ts` n'existe pas. Un adaptateur temporaire (`lib/genai-adapter.ts`) a été créé pour permettre la compilation, mais le code devrait être migré vers `@google/generative-ai`.
+2. Quelques erreurs TypeScript existent dans le code existant (voir `App.tsx`, `ChatInterface.tsx`, `InventoryContext.tsx`). Ces erreurs n'empêchent pas la compilation grâce à la configuration Vite, mais devraient être corrigées pour une meilleure maintenabilité.
+3. Le workflow CI exécute le type-checking avec `continue-on-error: true` pour ne pas bloquer le pipeline à cause des erreurs TypeScript existantes.
+
 ### 1. Configurer Firestore Rules
 
 Définir des règles de sécurité strictes dans la Firebase Console.
