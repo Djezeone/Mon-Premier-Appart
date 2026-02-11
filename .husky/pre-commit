@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+###############################################################################
+# Hook pre-commit Husky
+#
+# Ce hook s'exécute avant chaque commit pour :
+# 1. Formater et linter automatiquement les fichiers modifiés (lint-staged)
+# 2. Vérifier qu'aucune clé privée évidente n'est sur le point d'être commitée
+#
+# Si une erreur est détectée, le commit est bloqué
+###############################################################################
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Détection basique de secrets/clés privées dans les fichiers staged
+echo "🔍 Vérification de secrets potentiels..."
+if git diff --cached --name-only | xargs grep -E "(PRIVATE_KEY|SECRET_KEY|API_KEY|PASSWORD).*=.*['\"][A-Za-z0-9]{20,}" 2>/dev/null; then
+  echo "⚠️  ATTENTION : Des clés privées potentielles ont été détectées dans les fichiers staged !"
+  echo "Veuillez vérifier que vous n'êtes pas en train de committer des secrets."
+  echo "Si c'est intentionnel (fichiers .example), vous pouvez utiliser --no-verify"
+  exit 1
+fi
+
+npx lint-staged
