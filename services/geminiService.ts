@@ -115,9 +115,10 @@ const inventoryContext = INITIAL_INVENTORY.map(i => `${i.id}: ${i.name} (${i.cat
 export class GeminiService {
   private client: GoogleGenAI;
 
-  // Initialize with the API key directly from environment variables as required by the GenAI guidelines.
+  // Initialize with the API key from environment variables.
+  // Note: With Vite, use import.meta.env.VITE_API_KEY instead of process.env.API_KEY
   constructor() {
-    this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    this.client = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
   }
 
   async createChatSession(currentInventorySummary?: string) {
