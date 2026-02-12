@@ -259,6 +259,63 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                 </button>
             </div>
 
+            {/* Help & Resources Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm mt-6">
+                <h3 className="font-bold text-sm mb-3 text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    📚 Aide & Ressources
+                </h3>
+                
+                <a 
+                    href="https://github.com/Djezeone/Mon-Premier-Appart/blob/main/FAQ.md" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2 text-left"
+                >
+                    <span className="text-xl">❓</span>
+                    <div className="flex-1">
+                        <div className="font-medium">FAQ</div>
+                        <div className="text-xs text-gray-400">Questions fréquentes</div>
+                    </div>
+                </a>
+
+                <a 
+                    href="https://github.com/Djezeone/Mon-Premier-Appart/blob/main/PRIVACY.md" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2 text-left"
+                >
+                    <span className="text-xl">🔒</span>
+                    <div className="flex-1">
+                        <div className="font-medium">Confidentialité</div>
+                        <div className="text-xs text-gray-400">Politique de confidentialité</div>
+                    </div>
+                </a>
+
+                <a 
+                    href="https://github.com/Djezeone/Mon-Premier-Appart/blob/main/TERMS.md" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-2 text-left"
+                >
+                    <span className="text-xl">📄</span>
+                    <div className="flex-1">
+                        <div className="font-medium">Conditions</div>
+                        <div className="text-xs text-gray-400">Conditions d'utilisation</div>
+                    </div>
+                </a>
+
+                <a 
+                    href="mailto:support@monpremierappart.fr" 
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                    <span className="text-xl">📧</span>
+                    <div className="flex-1">
+                        <div className="font-medium">Support</div>
+                        <div className="text-xs text-gray-400">support@monpremierappart.fr</div>
+                    </div>
+                </a>
+            </div>
+
              <div className="text-center text-xs text-gray-400 mt-8">
                 Version V2.2 Multi-Coloc & Anchoring
             </div>

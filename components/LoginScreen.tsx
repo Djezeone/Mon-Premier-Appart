@@ -134,6 +134,19 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                 <b>Note :</b> Si vous ne voyez pas votre projet Firebase, assurez-vous de l'avoir créé sur <a href="https://console.firebase.google.com" target="_blank" className="underline font-bold">console.firebase.google.com</a> et d'avoir activé les méthodes d'authentification.
             </p>
         </div>
+
+        <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+                En vous connectant, vous acceptez nos{' '}
+                <a href="https://github.com/Djezeone/Mon-Premier-Appart/blob/main/TERMS.md" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Conditions d'Utilisation
+                </a>{' '}
+                et notre{' '}
+                <a href="https://github.com/Djezeone/Mon-Premier-Appart/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Politique de Confidentialité
+                </a>
+            </p>
+        </div>
       </div>
     </div>
   );
