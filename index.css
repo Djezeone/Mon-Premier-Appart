@@ -1,9 +1,10 @@
-/* @tailwind directives removed for Preview compatibility. 
-   Styles are handled by the CDN script in index.html for now. */
+/* Tailwind directives for proper build */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   body {
-    /* @apply antialiased bg-[#f3f4f6] text-gray-900; */
     overscroll-behavior-y: none;
     font-family: 'Inter', sans-serif;
   }
