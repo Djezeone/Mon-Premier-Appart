@@ -4,7 +4,7 @@ import { Item, AdminTask, BoxCounts, ChatMessage, Snapshot, DailyGroceryItem } f
 import { INITIAL_INVENTORY, DEFAULT_ADMIN_TASKS, LEVELS, BADGES, SOCIAL_AID_TASKS } from '../constants';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { db } from '../services/firebase';
+import { db, isFirebaseConfigured } from '../services/firebase';
 import { doc, setDoc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 
 interface GamificationModalData {
@@ -75,19 +75,43 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const isFirstRender = useRef(true);
     const prevLevelRef = useRef(1);
-    const prevBadgesRef = useRef<string[]>([]);
 
-    // --- FIREBASE SYNC LOGIC ---
+    // --- SYNC LOGIC ---
 
-    // 1. Listen for real-time updates from Firestore
+    // 1. Listen for updates (Firestore OR LocalStorage)
     useEffect(() => {
-        if (!firebaseUser) return;
-
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        
-        const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
+        if (isFirebaseConfigured && firebaseUser) {
+            // FIREBASE SYNC
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            
+            const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.inventory) setInventory(data.inventory);
+                    if (data.adminTasks) setAdminTasks(data.adminTasks);
+                    if (data.boxCounts) setBoxCounts(data.boxCounts);
+                    if (data.movingDate) setMovingDateState(data.movingDate);
+                    if (data.furnitureVolume !== undefined) setFurnitureVolumeState(data.furnitureVolume);
+                    if (data.dailyGroceries) setDailyGroceries(data.dailyGroceries);
+                    if (data.snapshots) setSnapshots(data.snapshots);
+                } else {
+                    setDoc(userDocRef, {
+                        inventory: INITIAL_INVENTORY,
+                        adminTasks: DEFAULT_ADMIN_TASKS,
+                        boxCounts: {},
+                        movingDate: '',
+                        furnitureVolume: 0,
+                        dailyGroceries: [],
+                        snapshots: []
+                    });
+                }
+            });
+            return () => unsubscribe();
+        } else if (!isFirebaseConfigured && user) {
+            // LOCAL STORAGE SYNC
+            const savedData = localStorage.getItem(`local_data_${user.id}`);
+            if (savedData) {
+                const data = JSON.parse(savedData);
                 if (data.inventory) setInventory(data.inventory);
                 if (data.adminTasks) setAdminTasks(data.adminTasks);
                 if (data.boxCounts) setBoxCounts(data.boxCounts);
@@ -95,35 +119,29 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
                 if (data.furnitureVolume !== undefined) setFurnitureVolumeState(data.furnitureVolume);
                 if (data.dailyGroceries) setDailyGroceries(data.dailyGroceries);
                 if (data.snapshots) setSnapshots(data.snapshots);
-            } else {
-                // Initialize user document if it doesn't exist
-                setDoc(userDocRef, {
-                    inventory: INITIAL_INVENTORY,
-                    adminTasks: DEFAULT_ADMIN_TASKS,
-                    boxCounts: {},
-                    movingDate: '',
-                    furnitureVolume: 0,
-                    dailyGroceries: [],
-                    snapshots: []
-                });
             }
-        });
+        }
+    }, [firebaseUser, user]);
 
-        return () => unsubscribe();
-    }, [firebaseUser]);
-
-    // 2. Local helper to push updates to Firebase
-    const syncToFirebase = async (updates: any) => {
-        if (!firebaseUser) return;
-        try {
-            const userDocRef = doc(db, 'users', firebaseUser.uid);
-            await updateDoc(userDocRef, updates);
-        } catch (error) {
-            console.error("Firestore update failed", error);
+    // 2. Helper to push updates
+    const syncUpdates = async (updates: any) => {
+        if (isFirebaseConfigured && firebaseUser) {
+            try {
+                const userDocRef = doc(db, 'users', firebaseUser.uid);
+                await updateDoc(userDocRef, updates);
+            } catch (error) {
+                console.error("Firestore update failed", error);
+            }
+        } else if (!isFirebaseConfigured && user) {
+            // Local Storage Update
+            const key = `local_data_${user.id}`;
+            const current = JSON.parse(localStorage.getItem(key) || '{}');
+            const newData = { ...current, ...updates };
+            localStorage.setItem(key, JSON.stringify(newData));
         }
     };
 
-    // --- GAMIFICATION LOGIC (Local) ---
+    // --- GAMIFICATION LOGIC ---
     useEffect(() => {
         const acquiredItems = inventory.filter(i => i.acquired);
         const xp = acquiredItems.length * 20;
@@ -150,13 +168,13 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const toggleItem = (id: string) => {
         const updated = inventory.map(item => item.id === id ? { ...item, acquired: !item.acquired } : item);
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const updateItem = (itemData: Partial<Item>) => {
         const updated = inventory.map(item => item.id === itemData.id ? { ...item, ...itemData } : item);
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const addItem = (itemData: Partial<Item>) => {
@@ -171,19 +189,19 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         };
         const updated = [...inventory, newItem];
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const deleteItem = (id: string) => {
         const updated = inventory.filter(item => item.id !== id);
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const updateInventoryBatch = (ids: string[], status: boolean) => {
         const updated = inventory.map(item => ids.includes(item.id) ? { ...item, acquired: status } : item);
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const importTemplate = (items: Partial<Item>[]) => {
@@ -199,35 +217,35 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         } as Item));
         const updated = [...inventory, ...newItems];
         setInventory(updated);
-        syncToFirebase({ inventory: updated });
+        syncUpdates({ inventory: updated });
     };
 
     const toggleAdminTask = (id: string) => {
-        const updated = adminTasks.map(t => t.id === id ? { ...t, status: t.status === 'done' ? 'todo' : 'done' } : t);
+        const updated = adminTasks.map(t => t.id === id ? { ...t, status: (t.status === 'done' ? 'todo' : 'done') as AdminTask['status'] } : t);
         setAdminTasks(updated);
-        syncToFirebase({ adminTasks: updated });
+        syncUpdates({ adminTasks: updated });
     };
 
     const updateAdminTaskDate = (id: string, date: string) => {
         const updated = adminTasks.map(t => t.id === id ? { ...t, manualDate: date } : t);
         setAdminTasks(updated);
-        syncToFirebase({ adminTasks: updated });
+        syncUpdates({ adminTasks: updated });
     };
 
     const updateBoxCount = (catId: string, count: number, isFragile: boolean, isHeavy: boolean) => {
         const updated = { ...boxCounts, [catId]: { count, isFragile, isHeavy } };
         setBoxCounts(updated);
-        syncToFirebase({ boxCounts: updated });
+        syncUpdates({ boxCounts: updated });
     };
 
     const setMovingDate = (date: string) => {
         setMovingDateState(date);
-        syncToFirebase({ movingDate: date });
+        syncUpdates({ movingDate: date });
     };
 
     const setFurnitureVolume = (vol: number) => {
         setFurnitureVolumeState(vol);
-        syncToFirebase({ furnitureVolume: vol });
+        syncUpdates({ furnitureVolume: vol });
     };
 
     const clearChat = () => setChatMessages([]);
@@ -244,37 +262,37 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         };
         const updated = [newItem, ...dailyGroceries];
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const toggleGroceryItem = (id: string) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, isChecked: !i.isChecked } : i);
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const updateGroceryItem = (id: string, updates: Partial<DailyGroceryItem>) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, ...updates } : i);
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const deleteGroceryItem = (id: string) => {
         const updated = dailyGroceries.filter(i => i.id !== id);
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const clearCheckedGroceries = () => {
         const updated = dailyGroceries.filter(i => !i.isChecked);
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const toggleGroceryFavorite = (id: string) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i);
         setDailyGroceries(updated);
-        syncToFirebase({ dailyGroceries: updated });
+        syncUpdates({ dailyGroceries: updated });
     };
 
     const createSnapshot = (label: string) => {
@@ -286,7 +304,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         };
         const updated = [newSnap, ...snapshots];
         setSnapshots(updated);
-        syncToFirebase({ snapshots: updated });
+        syncUpdates({ snapshots: updated });
     };
 
     const restoreSnapshot = (id: string) => {
@@ -295,7 +313,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
             setInventory(snap.data.inventory);
             setAdminTasks(snap.data.adminTasks);
             setDailyGroceries(snap.data.dailyGroceries);
-            syncToFirebase({
+            syncUpdates({
                 inventory: snap.data.inventory,
                 adminTasks: snap.data.adminTasks,
                 dailyGroceries: snap.data.dailyGroceries
@@ -306,29 +324,31 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const deleteSnapshot = (id: string) => {
         const updated = snapshots.filter(s => s.id !== id);
         setSnapshots(updated);
-        syncToFirebase({ snapshots: updated });
+        syncUpdates({ snapshots: updated });
     };
 
     const importData = (data: any) => {
         if (data.inventory) {
             setInventory(data.inventory);
-            syncToFirebase({ inventory: data.inventory });
+            syncUpdates({ inventory: data.inventory });
         }
     };
 
     const resetData = async () => {
-        if (!firebaseUser) return;
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const resetObj = {
-            inventory: INITIAL_INVENTORY,
-            adminTasks: DEFAULT_ADMIN_TASKS,
-            boxCounts: {},
-            movingDate: '',
-            furnitureVolume: 0,
-            dailyGroceries: [],
-            snapshots: []
-        };
-        await setDoc(userDocRef, resetObj);
+        if (isFirebaseConfigured && firebaseUser) {
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            await setDoc(userDocRef, {
+                inventory: INITIAL_INVENTORY,
+                adminTasks: DEFAULT_ADMIN_TASKS,
+                boxCounts: {},
+                movingDate: '',
+                furnitureVolume: 0,
+                dailyGroceries: [],
+                snapshots: []
+            });
+        } else if (!isFirebaseConfigured && user) {
+            localStorage.removeItem(`local_data_${user.id}`);
+        }
         window.location.reload();
     };
 
@@ -355,3 +375,4 @@ export const useInventory = () => {
     if (!context) throw new Error('useInventory must be used within an InventoryProvider');
     return context;
 };
+    

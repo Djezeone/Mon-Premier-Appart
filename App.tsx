@@ -72,7 +72,7 @@ const AppContent: React.FC = () => {
   const { showToast } = useToast();
   const isOnline = useOnlineStatus(showToast);
 
-  const { user, hasOnboarded, roommates, login, logout, updateUser, upgradeToPremium, completeOnboarding, isDarkMode, toggleDarkMode, hasSeenTutorial, completeTutorial } = useAuth();
+  const { user, hasOnboarded, roommates, logout, updateUser, upgradeToPremium, completeOnboarding, isDarkMode, toggleDarkMode, hasSeenTutorial, completeTutorial } = useAuth();
   
   const { 
       inventory, adminTasks, boxCounts, movingDate, furnitureVolume, chatMessages, 
@@ -109,7 +109,7 @@ const AppContent: React.FC = () => {
       });
   };
 
-  if (!user) return <LoginScreen onLogin={login} />;
+  if (!user) return <LoginScreen onLogin={async () => {}} />;
   if (!hasOnboarded) return <Onboarding onComplete={(p) => completeOnboarding(p, setInventory)} />;
 
   return (
@@ -168,3 +168,4 @@ export default function App() {
     </ToastProvider>
   );
 }
+    

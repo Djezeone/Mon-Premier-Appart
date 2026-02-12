@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, OnboardingProfile } from '../types';
 import { useToast } from './ToastContext';
 import { INITIAL_INVENTORY, KIDS_INVENTORY } from '../constants';
-import { auth, googleProvider } from '../services/firebase';
+import { auth, googleProvider, isFirebaseConfigured } from '../services/firebase';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -58,24 +58,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return localStorage.getItem('has-seen-tutorial') === 'true';
   });
 
+  // --- INIT AUTH ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (fbUser) {
-        setUser({
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Utilisateur',
-          email: fbUser.email || '',
-          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.email || 'User'}`,
-          isPremium: false,
-          memberSince: new Date()
+    if (isFirebaseConfigured && auth) {
+        const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+          setFirebaseUser(fbUser);
+          if (fbUser) {
+            setUser({
+              id: fbUser.uid,
+              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Utilisateur',
+              email: fbUser.email || '',
+              avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.email || 'User'}`,
+              isPremium: false,
+              memberSince: new Date()
+            });
+          } else {
+            setUser(null);
+          }
+          setIsLoading(false);
         });
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
+        return () => unsubscribe();
+    } else {
+        // MODE DÉMO LOCAL
+        const savedUser = localStorage.getItem('demo_user_session');
+        if (savedUser) {
+            const parsedUser = JSON.parse(savedUser);
+            // Convert strings back to dates if needed, though here memberSince is displayed as string often
+            setUser({ ...parsedUser, memberSince: new Date(parsedUser.memberSince) });
+        }
+        setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -88,63 +100,112 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('roommates-list', JSON.stringify(roommates));
   }, [roommates]);
 
+  // --- ACTIONS ---
+
   const loginWithGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      showToast("Bienvenue !", "success");
-    } catch (error: any) {
-      console.error(error);
-      showToast("Vérifiez que Google Auth est activé dans votre console Firebase.", "error");
+    if (isFirebaseConfigured && auth) {
+        try {
+          await signInWithPopup(auth, googleProvider);
+          showToast("Bienvenue !", "success");
+        } catch (error: any) {
+          console.error(error);
+          showToast("Erreur Google Auth", "error");
+        }
+    } else {
+        // Mock Google Login
+        const mockUser: User = {
+            id: 'demo-google-id',
+            name: 'Demo Google',
+            email: 'demo@gmail.com',
+            avatar: 'https://ui-avatars.com/api/?name=Demo+Google&background=random',
+            isPremium: true,
+            memberSince: new Date()
+        };
+        setUser(mockUser);
+        localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
+        showToast("Mode Démo : Connexion simulée", "success");
     }
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      showToast("Connexion réussie", "success");
-    } catch (error: any) {
-      let msg = "Erreur de connexion";
-      if (error.code === 'auth/user-not-found') msg = "Utilisateur inconnu";
-      if (error.code === 'auth/wrong-password') msg = "Mot de passe incorrect";
-      showToast(msg, "error");
-      throw error;
+    if (isFirebaseConfigured && auth) {
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          showToast("Connexion réussie", "success");
+        } catch (error: any) {
+          let msg = "Erreur de connexion";
+          if (error.code === 'auth/user-not-found') msg = "Utilisateur inconnu";
+          if (error.code === 'auth/wrong-password') msg = "Mot de passe incorrect";
+          showToast(msg, "error");
+          throw error;
+        }
+    } else {
+        // Mock Email Login
+        const mockUser: User = {
+            id: 'demo-email-id',
+            name: email.split('@')[0],
+            email: email,
+            avatar: `https://ui-avatars.com/api/?name=${email}`,
+            isPremium: false,
+            memberSince: new Date()
+        };
+        setUser(mockUser);
+        localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
+        showToast("Mode Démo : Connexion locale", "success");
     }
   };
 
   const registerWithEmail = async (email: string, pass: string) => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, pass);
-      showToast("Compte créé avec succès !", "success");
-    } catch (error: any) {
-      let msg = "Erreur d'inscription";
-      if (error.code === 'auth/email-already-in-use') msg = "Email déjà utilisé";
-      if (error.code === 'auth/weak-password') msg = "Mot de passe trop court (6 min)";
-      showToast(msg, "error");
-      throw error;
+    if (isFirebaseConfigured && auth) {
+        try {
+          await createUserWithEmailAndPassword(auth, email, pass);
+          showToast("Compte créé avec succès !", "success");
+        } catch (error: any) {
+          let msg = "Erreur d'inscription";
+          if (error.code === 'auth/email-already-in-use') msg = "Email déjà utilisé";
+          if (error.code === 'auth/weak-password') msg = "Mot de passe trop court (6 min)";
+          showToast(msg, "error");
+          throw error;
+        }
+    } else {
+        // Mock Register
+        loginWithEmail(email, pass);
     }
   };
 
   const logout = async () => {
     if (window.confirm("Se déconnecter ?")) {
-      try {
-        await signOut(auth);
-        setUser(null);
-        showToast("À bientôt !", "info");
-      } catch (error) {
-        showToast("Erreur lors de la déconnexion", "error");
+      if (isFirebaseConfigured && auth) {
+          try {
+            await signOut(auth);
+            setUser(null);
+            showToast("À bientôt !", "info");
+          } catch (error) {
+            showToast("Erreur lors de la déconnexion", "error");
+          }
+      } else {
+          // Mock Logout
+          localStorage.removeItem('demo_user_session');
+          setUser(null);
+          showToast("Déconnexion locale effectuée", "info");
+          window.location.reload();
       }
     }
   };
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
-      setUser({ ...user, ...updates });
+      const updated = { ...user, ...updates };
+      setUser(updated);
+      if (!isFirebaseConfigured) {
+          localStorage.setItem('demo_user_session', JSON.stringify(updated));
+      }
       showToast("Profil mis à jour", "success");
     }
   };
 
   const upgradeToPremium = () => {
-    if (user) setUser({ ...user, isPremium: true });
+    if (user) updateUser({ isPremium: true });
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
@@ -169,7 +230,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setInventoryCallback(scaledInventory);
     setHasOnboarded(true);
     localStorage.setItem('has-onboarded-v1', 'true');
-    if (user) setUser({ ...user, name: profile.name });
+    if (user) updateUser({ name: profile.name });
   };
 
   const completeTutorial = () => {

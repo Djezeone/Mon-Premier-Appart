@@ -256,7 +256,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
       <header className="px-6 py-4 border-b dark:border-gray-800 bg-white dark:bg-gray-800 shadow-sm z-10 flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                <Bot className="text-indigo-600 dark:text-indigo-400" /> Assistant Gold
+                <Bot className="text-indigo-600 dark:text-indigo-400" /> L'Assistant
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">Connecté à votre inventaire & administratif</p>
           </div>
