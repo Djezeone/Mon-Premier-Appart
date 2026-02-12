@@ -168,7 +168,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
       while (functionCalls && functionCalls.length > 0) {
         const responseParts = [];
         
-        for (const call of functionCalls) {
+        for (const call of functionCalls as any[]) {
             console.log("Calling tool:", call.name);
             let resultString = "";
 
@@ -217,7 +217,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
         }
         
         if (!currentImage && chatSessionRef.current) {
-            const followUp = await chatSessionRef.current.sendMessage({ message: responseParts });
+            const followUp: any = await chatSessionRef.current.sendMessage({ message: responseParts });
             modelText = followUp.text || "";
             functionCalls = followUp.functionCalls;
         } else {
