@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* @tailwind directives removed for Preview compatibility. 
+   Styles are handled by the CDN script in index.html for now. */
 
 @layer base {
   body {
