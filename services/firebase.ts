@@ -48,7 +48,9 @@ if (isFirebaseConfigured) {
     googleProvider.addScope('profile');
     googleProvider.addScope('email');
     googleProvider.setCustomParameters({
-      prompt: 'select_account' // Force la sélection du compte pour éviter les erreurs
+      // Force la sélection du compte à chaque connexion pour éviter les erreurs
+      // de compte caché ou de session persistante incorrecte
+      prompt: 'select_account'
     });
     
     emailProvider = new EmailAuthProvider();
