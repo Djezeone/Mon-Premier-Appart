@@ -35,6 +35,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mapping des codes d'erreur Google Auth vers des messages utilisateurs
+const GOOGLE_AUTH_ERROR_MESSAGES: Record<string, string> = {
+  'auth/popup-closed-by-user': 'Connexion annulée',
+  'auth/cancelled-popup-request': 'Demande de connexion annulée',
+  'auth/popup-blocked': 'Les popups sont bloquées. Vérifiez les paramètres de votre navigateur.',
+  'auth/operation-not-supported-in-this-environment': 'Les popups ne sont pas supportées dans cet environnement',
+  'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion internet.',
+  'auth/unauthorized-domain': "Ce domaine n'est pas autorisé. Configurez-le dans Firebase Console.",
+  'auth/internal-error': 'Erreur interne Firebase. Vérifiez votre configuration.',
+  'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cet email via une autre méthode de connexion'
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -108,8 +120,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await signInWithPopup(auth, googleProvider);
           showToast("Bienvenue !", "success");
         } catch (error: any) {
-          console.error(error);
-          showToast("Erreur Google Auth", "error");
+          console.error('Google Auth Error:', error);
+          const msg = GOOGLE_AUTH_ERROR_MESSAGES[error.code] || 'Erreur de connexion Google';
+          showToast(msg, "error");
         }
     } else {
         // Mock Google Login
