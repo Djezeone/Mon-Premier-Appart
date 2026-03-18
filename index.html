@@ -12,69 +12,7 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2921/2921226.png">
     
-    <!-- RESTORED TAILWIND CDN FOR PREVIEW ENVIRONMENT -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              gray: {
-                750: '#2d3748',
-              }
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.3s ease-out',
-              'slide-up': 'slideUp 0.3s ease-out',
-              'pop': 'pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-              'float': 'float 3s ease-in-out infinite',
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              },
-              pop: {
-                '0%': { transform: 'scale(0.8)', opacity: '0' },
-                '100%': { transform: 'scale(1)', opacity: '1' },
-              },
-              float: {
-                '0%': { transform: 'translateY(0px)' },
-                '50%': { transform: 'translateY(-10px)' },
-                '100%': { transform: 'translateY(0px)' },
-              }
-            }
-          }
-        }
-      }
-    </script>
 
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "vite": "https://aistudiocdn.com/vite@^7.2.7",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "zod": "https://aistudiocdn.com/zod@^4.1.13",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
-    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
-    "firebase/app-check": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js",
-    "firebase/": "https://esm.sh/firebase@^12.9.0/"
-  }
-}
-</script>
 </head>
   <body>
     <div id="root"></div>
