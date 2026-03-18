@@ -12,7 +12,8 @@ Assistant complet de déménagement : Inventaire, Budget, IA, Papiers, Logistiqu
 
 1. Cliquez sur le bouton ci-dessus (ou importez le repo depuis [vercel.com](https://vercel.com))
 2. Dans les **Environment Variables** du projet Vercel, ajoutez :
-   - `API_KEY` → votre clé API Google Gemini ([obtenir une clé](https://aistudio.google.com/app/apikey))
+   - `VITE_API_KEY` → votre clé API Google Gemini ([obtenir une clé](https://aistudio.google.com/app/apikey))
+   - `API_KEY` reste accepté en compatibilité, mais `VITE_API_KEY` est recommandé pour Vite
 3. Cliquez sur **Deploy** — c'est tout !
 
 ## 💻 Lancer en local
@@ -26,7 +27,7 @@ Assistant complet de déménagement : Inventaire, Budget, IA, Papiers, Logistiqu
 2. Copier le fichier d'exemple et renseigner votre clé Gemini :
    ```bash
    cp .env.example .env.local
-   # Éditer .env.local et mettre votre clé API_KEY
+   # Éditer .env.local et mettre votre clé VITE_API_KEY
    ```
 3. Lancer le serveur de développement :
    ```bash

@@ -112,16 +112,31 @@ const tools: Tool[] = [
 // Helper for initial static context
 const inventoryContext = INITIAL_INVENTORY.map(i => `${i.id}: ${i.name} (${i.category})`).join('\n');
 
-export class GeminiService {
-  private client: GoogleGenAI;
+const getGeminiApiKey = () => {
+  return import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
+};
 
-  // Initialize with the API key directly from environment variables as required by the GenAI guidelines.
-  constructor() {
-    this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const hasGeminiApiKey = () => Boolean(getGeminiApiKey());
+
+export class GeminiService {
+  private client: GoogleGenAI | null = null;
+
+  private getClient() {
+    if (!this.client) {
+      const apiKey = getGeminiApiKey();
+
+      if (!apiKey) {
+        throw new Error("Clé API Gemini manquante. Configurez VITE_API_KEY ou API_KEY avant d'utiliser l'assistant.");
+      }
+
+      this.client = new GoogleGenAI({ apiKey });
+    }
+
+    return this.client;
   }
 
   async createChatSession(currentInventorySummary?: string) {
-    return this.client.chats.create({
+    return this.getClient().chats.create({
       model: 'gemini-3-pro-preview',
       config: {
         systemInstruction: `${SYSTEM_INSTRUCTION}\n\nContexte Initial:\n${currentInventorySummary || inventoryContext}`,
@@ -142,7 +157,7 @@ export class GeminiService {
       text: `${SYSTEM_INSTRUCTION}\n\nÉtat actuel de l'inventaire:\n${currentInventorySummary || inventoryContext}\n\n${prompt}`
     };
 
-    return this.client.models.generateContent({
+    return this.getClient().models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: {
         parts: [textPart, imagePart]

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FunctionCall } from '@google/genai';
 import { ChatMessage, Item, AdminTask, BoxCounts, BoxDetail, DailyGroceryItem } from '../types';
-import { geminiService } from '../services/geminiService';
+import { geminiService, hasGeminiApiKey } from '../services/geminiService';
 import { Send, Loader2, Bot, User, Paperclip, X, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useInventory } from '../contexts/InventoryContext';
 
@@ -23,9 +23,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(
+    hasGeminiApiKey() ? null : "Assistant IA indisponible : ajoutez VITE_API_KEY (ou API_KEY) dans votre environnement Vercel."
+  );
   const chatSessionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputPlaceholder = chatError
+    ? "Configuration Gemini requise pour activer l'assistant..."
+    : selectedImage
+      ? "Ajouter un commentaire..."
+      : "Pose une question (Admin, Cartons, Budget)...";
 
   // Helper to generate context string
   const getInventoryContextString = () => {
@@ -57,11 +65,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
 
   useEffect(() => {
     const initChat = async () => {
-        try {
-            chatSessionRef.current = await geminiService.createChatSession(getInventoryContextString());
-        } catch (e) {
-            console.error("Failed to init chat", e);
-        }
+      if (!hasGeminiApiKey()) {
+        chatSessionRef.current = null;
+        return;
+      }
+
+      try {
+        chatSessionRef.current = await geminiService.createChatSession(getInventoryContextString());
+        setChatError(null);
+      } catch (e) {
+        console.error("Failed to init chat", e);
+        chatSessionRef.current = null;
+        setChatError("Assistant IA indisponible pour le moment. Vérifiez la configuration de la clé Gemini.");
+      }
     };
     initChat();
   }, [roommates]);
@@ -133,7 +149,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !selectedImage) || !chatSessionRef.current) return;
+    if (chatError || (!input.trim() && !selectedImage) || !chatSessionRef.current) return;
 
     const currentInput = input;
     const currentImage = selectedImage;
@@ -270,6 +286,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
       </header>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {chatError && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+            {chatError}
+          </div>
+        )}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -320,11 +341,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
       <div className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
         <div className="flex gap-2">
            <button
-            onClick={() => fileInputRef.current?.click()}
-            className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full transition-colors"
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
+             onClick={() => fileInputRef.current?.click()}
+             disabled={Boolean(chatError)}
+             className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             <Paperclip className="w-5 h-5" />
+           </button>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -334,18 +356,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
           />
 
           <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={selectedImage ? "Ajouter un commentaire..." : "Pose une question (Admin, Cartons, Budget)..."}
-            className="flex-1 bg-gray-100 dark:bg-gray-700 border-0 rounded-full px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-gray-900 placeholder-gray-500 dark:text-white dark:placeholder-gray-400"
-          />
-          <button
-            onClick={handleSend}
-            disabled={(!input.trim() && !selectedImage) || isLoading}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+             type="text"
+             value={input}
+             onChange={(e) => setInput(e.target.value)}
+             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+             placeholder={inputPlaceholder}
+             disabled={Boolean(chatError)}
+             className="flex-1 bg-gray-100 dark:bg-gray-700 border-0 rounded-full px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-gray-900 placeholder-gray-500 dark:text-white dark:placeholder-gray-400"
+           />
+           <button
+             onClick={handleSend}
+             disabled={Boolean(chatError) || (!input.trim() && !selectedImage) || isLoading}
+             className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           >
             <Send className="w-5 h-5" />
           </button>
         </div>
