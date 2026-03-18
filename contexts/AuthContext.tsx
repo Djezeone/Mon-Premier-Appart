@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             'auth/popup-blocked': 'Les popups sont bloquées. Vérifiez les paramètres de votre navigateur.',
             'auth/operation-not-supported-in-this-environment': 'Les popups ne sont pas supportées dans cet environnement',
             'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion internet.',
-            'auth/unauthorized-domain': 'Ce domaine n\'est pas autorisé. Configurez-le dans Firebase Console.',
+            'auth/unauthorized-domain': "Ce domaine n'est pas autorisé. Configurez-le dans Firebase Console.",
             'auth/internal-error': 'Erreur interne Firebase. Vérifiez votre configuration.',
             'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cet email via une autre méthode de connexion'
           };
