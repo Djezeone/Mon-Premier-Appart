@@ -113,8 +113,7 @@ const tools: Tool[] = [
 const inventoryContext = INITIAL_INVENTORY.map(i => `${i.id}: ${i.name} (${i.category})`).join('\n');
 
 const getGeminiApiKey = () => {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
-  return env?.VITE_API_KEY || env?.API_KEY || process.env.VITE_API_KEY || process.env.API_KEY;
+  return import.meta.env.VITE_API_KEY || import.meta.env.API_KEY;
 };
 
 export const hasGeminiApiKey = () => Boolean(getGeminiApiKey());

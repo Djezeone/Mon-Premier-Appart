@@ -29,6 +29,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
   const chatSessionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputPlaceholder = chatError
+    ? "Configuration Gemini requise pour activer l'assistant..."
+    : selectedImage
+      ? "Ajouter un commentaire..."
+      : "Pose une question (Admin, Cartons, Budget)...";
 
   // Helper to generate context string
   const getInventoryContextString = () => {
@@ -60,19 +65,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
 
   useEffect(() => {
     const initChat = async () => {
-        if (!hasGeminiApiKey()) {
-            chatSessionRef.current = null;
-            return;
-        }
+      if (!hasGeminiApiKey()) {
+        chatSessionRef.current = null;
+        return;
+      }
 
-        try {
-            chatSessionRef.current = await geminiService.createChatSession(getInventoryContextString());
-            setChatError(null);
-        } catch (e) {
-            console.error("Failed to init chat", e);
-            chatSessionRef.current = null;
-            setChatError("Assistant IA indisponible pour le moment. Vérifiez la configuration de la clé Gemini.");
-        }
+      try {
+        chatSessionRef.current = await geminiService.createChatSession(getInventoryContextString());
+        setChatError(null);
+      } catch (e) {
+        console.error("Failed to init chat", e);
+        chatSessionRef.current = null;
+        setChatError("Assistant IA indisponible pour le moment. Vérifiez la configuration de la clé Gemini.");
+      }
     };
     initChat();
   }, [roommates]);
@@ -351,11 +356,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
           />
 
           <input
-            type="text"
+             type="text"
              value={input}
              onChange={(e) => setInput(e.target.value)}
              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-             placeholder={chatError ? "Configuration Gemini requise pour activer l'assistant..." : selectedImage ? "Ajouter un commentaire..." : "Pose une question (Admin, Cartons, Budget)..."}
+             placeholder={inputPlaceholder}
              disabled={Boolean(chatError)}
              className="flex-1 bg-gray-100 dark:bg-gray-700 border-0 rounded-full px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-gray-900 placeholder-gray-500 dark:text-white dark:placeholder-gray-400"
            />
