@@ -42,7 +42,15 @@ if (isFirebaseConfigured) {
     app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApps()[0];
     auth = getAuth(app);
     db = getFirestore(app);
+    
+    // Configuration du fournisseur Google avec les scopes nécessaires
     googleProvider = new GoogleAuthProvider();
+    googleProvider.addScope('profile');
+    googleProvider.addScope('email');
+    googleProvider.setCustomParameters({
+      prompt: 'select_account' // Force la sélection du compte pour éviter les erreurs
+    });
+    
     emailProvider = new EmailAuthProvider();
 
     // --- APP CHECK CONFIGURATION ---

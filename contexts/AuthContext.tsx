@@ -108,8 +108,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await signInWithPopup(auth, googleProvider);
           showToast("Bienvenue !", "success");
         } catch (error: any) {
-          console.error(error);
-          showToast("Erreur Google Auth", "error");
+          console.error('Google Auth Error:', error);
+          let msg = "Erreur de connexion Google";
+          
+          // Messages d'erreur spécifiques selon le code d'erreur
+          if (error.code === 'auth/popup-closed-by-user') {
+            msg = "Connexion annulée";
+          } else if (error.code === 'auth/cancelled-popup-request') {
+            msg = "Demande de connexion annulée";
+          } else if (error.code === 'auth/popup-blocked') {
+            msg = "Les popups sont bloquées. Vérifiez les paramètres de votre navigateur.";
+          } else if (error.code === 'auth/operation-not-supported-in-this-environment') {
+            msg = "Les popups ne sont pas supportées dans cet environnement";
+          } else if (error.code === 'auth/network-request-failed') {
+            msg = "Erreur réseau. Vérifiez votre connexion internet.";
+          } else if (error.code === 'auth/unauthorized-domain') {
+            msg = "Ce domaine n'est pas autorisé. Configurez-le dans Firebase Console.";
+          } else if (error.code === 'auth/internal-error') {
+            msg = "Erreur interne Firebase. Vérifiez votre configuration.";
+          } else if (error.code === 'auth/account-exists-with-different-credential') {
+            msg = "Un compte existe déjà avec cet email via une autre méthode de connexion";
+          }
+          
+          showToast(msg, "error");
+          throw error;
         }
     } else {
         // Mock Google Login
