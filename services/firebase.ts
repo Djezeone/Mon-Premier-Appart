@@ -22,8 +22,13 @@ const firebaseConfig = {
   measurementId: "G-LKCPQ3ELZS"
 };
 
-// Vérifie si la configuration est valide
-export const isFirebaseConfigured = !firebaseConfig.apiKey.includes("AIzaSyAI_5gxKVAIDCNjQM8Y1D0A5C0011npsN0");
+// Vérifie si la configuration Firebase est valide (clé non vide et non placeholder)
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.apiKey.length > 0 &&
+  !firebaseConfig.apiKey.startsWith("COLLER_ICI") &&
+  !firebaseConfig.apiKey.startsWith("your_")
+);
 
 let app;
 let auth: any = null;

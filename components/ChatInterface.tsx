@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { FunctionCall } from '@google/genai';
 import { ChatMessage, Item, AdminTask, BoxCounts, BoxDetail, DailyGroceryItem } from '../types';
 import { geminiService } from '../services/geminiService';
 import { Send, Loader2, Bot, User, Paperclip, X, Image as ImageIcon, Trash2 } from 'lucide-react';
@@ -152,7 +153,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
 
     try {
       let modelText = "";
-      let functionCalls;
+      let functionCalls: FunctionCall[] | undefined;
 
       if (currentImage) {
           const imageBase64 = currentImage.split(',')[1];
@@ -217,7 +218,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, bo
         }
         
         if (!currentImage && chatSessionRef.current) {
-            const followUp = await chatSessionRef.current.sendMessage({ message: responseParts });
+            const followUp: import('@google/genai').GenerateContentResponse = await chatSessionRef.current.sendMessage({ message: responseParts });
             modelText = followUp.text || "";
             functionCalls = followUp.functionCalls;
         } else {

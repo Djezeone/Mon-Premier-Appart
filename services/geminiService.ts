@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, FunctionDeclaration, Type, Tool } from "@google/genai";
+import { GoogleGenAI, FunctionDeclaration, FunctionCall, Type, Tool } from "@google/genai";
 import { SYSTEM_INSTRUCTION, INITIAL_INVENTORY } from '../constants';
 import { Item } from "../types";
 
