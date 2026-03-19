@@ -4,8 +4,7 @@ import { Item, AdminTask, BoxCounts, ChatMessage, Snapshot, DailyGroceryItem } f
 import { INITIAL_INVENTORY, DEFAULT_ADMIN_TASKS, LEVELS, BADGES, SOCIAL_AID_TASKS } from '../constants';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { db, isFirebaseConfigured } from '../services/firebase';
-import { doc, setDoc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 interface GamificationModalData {
     type: 'levelup' | 'badge';
@@ -35,7 +34,7 @@ interface InventoryContextType {
     updateInventoryBatch: (ids: string[], status: boolean) => void;
     importTemplate: (items: Partial<Item>[]) => void;
     toggleAdminTask: (id: string) => void;
-    updateAdminTaskDate: (id: string, date: string) => void; 
+    updateAdminTaskDate: (id: string, date: string) => void;
     updateBoxCount: (catId: string, count: number, isFragile: boolean, isHeavy: boolean) => void;
     setMovingDate: (date: string) => void;
     setFurnitureVolume: (vol: number) => void;
@@ -57,8 +56,19 @@ interface InventoryContextType {
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
+// Défaut utilisé pour créer une ligne manquante dans Supabase
+const DEFAULT_USER_DATA = {
+    inventory: INITIAL_INVENTORY,
+    admin_tasks: DEFAULT_ADMIN_TASKS,
+    box_counts: {},
+    moving_date: '',
+    furniture_volume: 0,
+    daily_groceries: [],
+    snapshots: [],
+};
+
 export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { user, firebaseUser } = useAuth();
+    const { user, supabaseUser } = useAuth();
     const { showToast } = useToast();
 
     const [inventory, setInventory] = useState<Item[]>(INITIAL_INVENTORY);
@@ -76,38 +86,64 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const isFirstRender = useRef(true);
     const prevLevelRef = useRef(1);
 
+    // Helper: applique les données reçues depuis Supabase à l'état local
+    const applyRemoteData = (data: any) => {
+        if (data.inventory) setInventory(data.inventory);
+        if (data.admin_tasks) setAdminTasks(data.admin_tasks);
+        if (data.box_counts) setBoxCounts(data.box_counts);
+        if (data.moving_date !== undefined) setMovingDateState(data.moving_date);
+        if (data.furniture_volume !== undefined) setFurnitureVolumeState(data.furniture_volume);
+        if (data.daily_groceries) setDailyGroceries(data.daily_groceries);
+        if (data.snapshots) setSnapshots(data.snapshots);
+    };
+
     // --- SYNC LOGIC ---
 
-    // 1. Listen for updates (Firestore OR LocalStorage)
+    // 1. Chargement initial + abonnement temps réel
     useEffect(() => {
-        if (isFirebaseConfigured && firebaseUser) {
-            // FIREBASE SYNC
-            const userDocRef = doc(db, 'users', firebaseUser.uid);
-            
-            const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.inventory) setInventory(data.inventory);
-                    if (data.adminTasks) setAdminTasks(data.adminTasks);
-                    if (data.boxCounts) setBoxCounts(data.boxCounts);
-                    if (data.movingDate) setMovingDateState(data.movingDate);
-                    if (data.furnitureVolume !== undefined) setFurnitureVolumeState(data.furnitureVolume);
-                    if (data.dailyGroceries) setDailyGroceries(data.dailyGroceries);
-                    if (data.snapshots) setSnapshots(data.snapshots);
-                } else {
-                    setDoc(userDocRef, {
-                        inventory: INITIAL_INVENTORY,
-                        adminTasks: DEFAULT_ADMIN_TASKS,
-                        boxCounts: {},
-                        movingDate: '',
-                        furnitureVolume: 0,
-                        dailyGroceries: [],
-                        snapshots: []
-                    });
-                }
-            });
-            return () => unsubscribe();
-        } else if (!isFirebaseConfigured && user) {
+        if (isSupabaseConfigured && supabase && supabaseUser) {
+            const db = supabase;
+            const userId = supabaseUser.id;
+
+            // Chargement initial
+            db
+                .from('user_data')
+                .select('*')
+                .eq('user_id', userId)
+                .single()
+                .then(async ({ data, error }) => {
+                    if (error && error.code === 'PGRST116') {
+                        // Ligne introuvable → on la crée
+                        await db.from('user_data').insert({
+                            user_id: userId,
+                            ...DEFAULT_USER_DATA,
+                        });
+                    } else if (data) {
+                        applyRemoteData(data);
+                    }
+                });
+
+            // Abonnement temps réel Supabase
+            const channel = db
+                .channel(`user_data:${userId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'user_data',
+                        filter: `user_id=eq.${userId}`,
+                    },
+                    (payload) => {
+                        if (payload.new) applyRemoteData(payload.new);
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                db.removeChannel(channel);
+            };
+        } else if (!isSupabaseConfigured && user) {
             // LOCAL STORAGE SYNC
             const savedData = localStorage.getItem(`local_data_${user.id}`);
             if (savedData) {
@@ -121,18 +157,20 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
                 if (data.snapshots) setSnapshots(data.snapshots);
             }
         }
-    }, [firebaseUser, user]);
+    }, [supabaseUser, user]);
 
-    // 2. Helper to push updates
+    // 2. Helper pour pousser les mises à jour
     const syncUpdates = async (updates: any) => {
-        if (isFirebaseConfigured && firebaseUser) {
+        if (isSupabaseConfigured && supabase && supabaseUser) {
             try {
-                const userDocRef = doc(db, 'users', firebaseUser.uid);
-                await updateDoc(userDocRef, updates);
+                await supabase
+                    .from('user_data')
+                    .update(updates)
+                    .eq('user_id', supabaseUser.id);
             } catch (error) {
-                console.error("Firestore update failed", error);
+                console.error('Supabase update failed', error);
             }
-        } else if (!isFirebaseConfigured && user) {
+        } else if (!isSupabaseConfigured && user) {
             // Local Storage Update
             const key = `local_data_${user.id}`;
             const current = JSON.parse(localStorage.getItem(key) || '{}');
@@ -223,29 +261,29 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     const toggleAdminTask = (id: string) => {
         const updated = adminTasks.map(t => t.id === id ? { ...t, status: (t.status === 'done' ? 'todo' : 'done') as AdminTask['status'] } : t);
         setAdminTasks(updated);
-        syncUpdates({ adminTasks: updated });
+        syncUpdates({ admin_tasks: updated });
     };
 
     const updateAdminTaskDate = (id: string, date: string) => {
         const updated = adminTasks.map(t => t.id === id ? { ...t, manualDate: date } : t);
         setAdminTasks(updated);
-        syncUpdates({ adminTasks: updated });
+        syncUpdates({ admin_tasks: updated });
     };
 
     const updateBoxCount = (catId: string, count: number, isFragile: boolean, isHeavy: boolean) => {
         const updated = { ...boxCounts, [catId]: { count, isFragile, isHeavy } };
         setBoxCounts(updated);
-        syncUpdates({ boxCounts: updated });
+        syncUpdates({ box_counts: updated });
     };
 
     const setMovingDate = (date: string) => {
         setMovingDateState(date);
-        syncUpdates({ movingDate: date });
+        syncUpdates({ moving_date: date });
     };
 
     const setFurnitureVolume = (vol: number) => {
         setFurnitureVolumeState(vol);
-        syncUpdates({ furnitureVolume: vol });
+        syncUpdates({ furniture_volume: vol });
     };
 
     const clearChat = () => setChatMessages([]);
@@ -262,37 +300,37 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         };
         const updated = [newItem, ...dailyGroceries];
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const toggleGroceryItem = (id: string) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, isChecked: !i.isChecked } : i);
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const updateGroceryItem = (id: string, updates: Partial<DailyGroceryItem>) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, ...updates } : i);
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const deleteGroceryItem = (id: string) => {
         const updated = dailyGroceries.filter(i => i.id !== id);
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const clearCheckedGroceries = () => {
         const updated = dailyGroceries.filter(i => !i.isChecked);
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const toggleGroceryFavorite = (id: string) => {
         const updated = dailyGroceries.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i);
         setDailyGroceries(updated);
-        syncUpdates({ dailyGroceries: updated });
+        syncUpdates({ daily_groceries: updated });
     };
 
     const createSnapshot = (label: string) => {
@@ -300,7 +338,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
             id: Date.now().toString(),
             label,
             timestamp: new Date().toISOString(),
-            data: { inventory, adminTasks, dailyGroceries }
+            data: { inventory, admin_tasks: adminTasks, daily_groceries: dailyGroceries }
         };
         const updated = [newSnap, ...snapshots];
         setSnapshots(updated);
@@ -311,12 +349,12 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
         const snap = snapshots.find(s => s.id === id);
         if (snap) {
             setInventory(snap.data.inventory);
-            setAdminTasks(snap.data.adminTasks);
-            setDailyGroceries(snap.data.dailyGroceries);
+            setAdminTasks(snap.data.admin_tasks ?? snap.data.adminTasks);
+            setDailyGroceries(snap.data.daily_groceries ?? snap.data.dailyGroceries);
             syncUpdates({
                 inventory: snap.data.inventory,
-                adminTasks: snap.data.adminTasks,
-                dailyGroceries: snap.data.dailyGroceries
+                admin_tasks: snap.data.admin_tasks ?? snap.data.adminTasks,
+                daily_groceries: snap.data.daily_groceries ?? snap.data.dailyGroceries
             });
         }
     };
@@ -335,18 +373,14 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     const resetData = async () => {
-        if (isFirebaseConfigured && firebaseUser) {
-            const userDocRef = doc(db, 'users', firebaseUser.uid);
-            await setDoc(userDocRef, {
-                inventory: INITIAL_INVENTORY,
-                adminTasks: DEFAULT_ADMIN_TASKS,
-                boxCounts: {},
-                movingDate: '',
-                furnitureVolume: 0,
-                dailyGroceries: [],
-                snapshots: []
-            });
-        } else if (!isFirebaseConfigured && user) {
+        if (isSupabaseConfigured && supabase && supabaseUser) {
+            await supabase
+                .from('user_data')
+                .upsert({
+                    user_id: supabaseUser.id,
+                    ...DEFAULT_USER_DATA,
+                });
+        } else if (!isSupabaseConfigured && user) {
             localStorage.removeItem(`local_data_${user.id}`);
         }
         window.location.reload();
@@ -361,7 +395,7 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
             currentXP, currentLevel, modalData, closeModal, showCelebration,
             toggleItem, updateItem, addItem, deleteItem, updateInventoryBatch, importTemplate,
             toggleAdminTask, updateAdminTaskDate, updateBoxCount, setMovingDate, setFurnitureVolume,
-            setChatMessages, clearChat, addGroceryItem, toggleGroceryItem, updateGroceryItem, deleteGroceryItem, 
+            setChatMessages, clearChat, addGroceryItem, toggleGroceryItem, updateGroceryItem, deleteGroceryItem,
             clearCheckedGroceries, toggleGroceryFavorite, importData, resetData, setInventory,
             createSnapshot, restoreSnapshot, deleteSnapshot
         }}>
@@ -375,4 +409,3 @@ export const useInventory = () => {
     if (!context) throw new Error('useInventory must be used within an InventoryProvider');
     return context;
 };
-    

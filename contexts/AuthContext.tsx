@@ -1,21 +1,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User, OnboardingProfile } from '../types';
 import { useToast } from './ToastContext';
 import { INITIAL_INVENTORY, KIDS_INVENTORY } from '../constants';
-import { auth, googleProvider, isFirebaseConfigured } from '../services/firebase';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  signOut, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  User as FirebaseUser 
-} from 'firebase/auth';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
-  firebaseUser: FirebaseUser | null;
+  supabaseUser: SupabaseUser | null;
   hasOnboarded: boolean;
   isDarkMode: boolean;
   roommates: string[];
@@ -35,21 +28,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mapping des codes d'erreur Google Auth vers des messages utilisateurs
-const GOOGLE_AUTH_ERROR_MESSAGES: Record<string, string> = {
-  'auth/popup-closed-by-user': 'Connexion annulée',
-  'auth/cancelled-popup-request': 'Demande de connexion annulée',
-  'auth/popup-blocked': 'Les popups sont bloquées. Vérifiez les paramètres de votre navigateur.',
-  'auth/operation-not-supported-in-this-environment': 'Les popups ne sont pas supportées dans cet environnement',
-  'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion internet.',
-  'auth/unauthorized-domain': "Ce domaine n'est pas autorisé. Configurez-le dans Firebase Console.",
-  'auth/internal-error': 'Erreur interne Firebase. Vérifiez votre configuration.',
-  'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cet email via une autre méthode de connexion'
+// Mapping des codes d'erreur Supabase Auth vers des messages utilisateurs
+const SUPABASE_AUTH_ERROR_MESSAGES: Record<string, string> = {
+  'invalid_credentials': 'Email ou mot de passe incorrect',
+  'user_already_exists': 'Un compte existe déjà avec cet email',
+  'email_not_confirmed': "Confirmez votre email avant de vous connecter",
+  'weak_password': 'Mot de passe trop court (6 caractères minimum)',
+  'over_email_send_rate_limit': 'Trop de tentatives. Réessayez dans quelques minutes.',
+  'user_not_found': 'Utilisateur inconnu',
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,35 +61,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return localStorage.getItem('has-seen-tutorial') === 'true';
   });
 
+  // Helper: convertit un SupabaseUser en User applicatif
+  const mapSupabaseUser = (sbUser: SupabaseUser): User => ({
+    id: sbUser.id,
+    name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Utilisateur',
+    email: sbUser.email || '',
+    avatar: sbUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${sbUser.email || 'User'}`,
+    isPremium: false,
+    memberSince: new Date(sbUser.created_at),
+  });
+
   // --- INIT AUTH ---
   useEffect(() => {
-    if (isFirebaseConfigured && auth) {
-        const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-          setFirebaseUser(fbUser);
-          if (fbUser) {
-            setUser({
-              id: fbUser.uid,
-              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Utilisateur',
-              email: fbUser.email || '',
-              avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.email || 'User'}`,
-              isPremium: false,
-              memberSince: new Date()
-            });
-          } else {
-            setUser(null);
-          }
-          setIsLoading(false);
-        });
-        return () => unsubscribe();
-    } else {
-        // MODE DÉMO LOCAL
-        const savedUser = localStorage.getItem('demo_user_session');
-        if (savedUser) {
-            const parsedUser = JSON.parse(savedUser);
-            // Convert strings back to dates if needed, though here memberSince is displayed as string often
-            setUser({ ...parsedUser, memberSince: new Date(parsedUser.memberSince) });
+    if (isSupabaseConfigured && supabase) {
+      // Lecture de la session existante
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser(mapSupabaseUser(session.user));
         }
         setIsLoading(false);
+      });
+
+      // Écoute des changements d'état
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser(mapSupabaseUser(session.user));
+        } else {
+          setSupabaseUser(null);
+          setUser(null);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    } else {
+      // MODE DÉMO LOCAL
+      const savedUser = localStorage.getItem('demo_user_session');
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        setUser({ ...parsedUser, memberSince: new Date(parsedUser.memberSince) });
+      }
+      setIsLoading(false);
     }
   }, []);
 
@@ -115,93 +119,97 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // --- ACTIONS ---
 
   const loginWithGoogle = async () => {
-    if (isFirebaseConfigured && auth) {
-        try {
-          await signInWithPopup(auth, googleProvider);
-          showToast("Bienvenue !", "success");
-        } catch (error: any) {
-          console.error('Google Auth Error:', error);
-          const msg = GOOGLE_AUTH_ERROR_MESSAGES[error.code] || 'Erreur de connexion Google';
-          showToast(msg, "error");
-        }
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            queryParams: { prompt: 'select_account' },
+          },
+        });
+        if (error) throw error;
+        // La redirection OAuth gère la suite ; showToast après retour dans onAuthStateChange
+      } catch (error: any) {
+        console.error('Google Auth Error:', error);
+        const msg = SUPABASE_AUTH_ERROR_MESSAGES[error.code] || 'Erreur de connexion Google';
+        showToast(msg, 'error');
+      }
     } else {
-        // Mock Google Login
-        const mockUser: User = {
-            id: 'demo-google-id',
-            name: 'Demo Google',
-            email: 'demo@gmail.com',
-            avatar: 'https://ui-avatars.com/api/?name=Demo+Google&background=random',
-            isPremium: true,
-            memberSince: new Date()
-        };
-        setUser(mockUser);
-        localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
-        showToast("Mode Démo : Connexion simulée", "success");
+      // Mock Google Login
+      const mockUser: User = {
+        id: 'demo-google-id',
+        name: 'Demo Google',
+        email: 'demo@gmail.com',
+        avatar: 'https://ui-avatars.com/api/?name=Demo+Google&background=random',
+        isPremium: true,
+        memberSince: new Date(),
+      };
+      setUser(mockUser);
+      localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
+      showToast('Mode Démo : Connexion simulée', 'success');
     }
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
-    if (isFirebaseConfigured && auth) {
-        try {
-          await signInWithEmailAndPassword(auth, email, pass);
-          showToast("Connexion réussie", "success");
-        } catch (error: any) {
-          let msg = "Erreur de connexion";
-          if (error.code === 'auth/user-not-found') msg = "Utilisateur inconnu";
-          if (error.code === 'auth/wrong-password') msg = "Mot de passe incorrect";
-          showToast(msg, "error");
-          throw error;
-        }
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+        showToast('Connexion réussie', 'success');
+      } catch (error: any) {
+        const msg = SUPABASE_AUTH_ERROR_MESSAGES[error.code] || error.message || 'Erreur de connexion';
+        showToast(msg, 'error');
+        throw error;
+      }
     } else {
-        // Mock Email Login
-        const mockUser: User = {
-            id: 'demo-email-id',
-            name: email.split('@')[0],
-            email: email,
-            avatar: `https://ui-avatars.com/api/?name=${email}`,
-            isPremium: false,
-            memberSince: new Date()
-        };
-        setUser(mockUser);
-        localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
-        showToast("Mode Démo : Connexion locale", "success");
+      // Mock Email Login
+      const mockUser: User = {
+        id: 'demo-email-id',
+        name: email.split('@')[0],
+        email: email,
+        avatar: `https://ui-avatars.com/api/?name=${email}`,
+        isPremium: false,
+        memberSince: new Date(),
+      };
+      setUser(mockUser);
+      localStorage.setItem('demo_user_session', JSON.stringify(mockUser));
+      showToast('Mode Démo : Connexion locale', 'success');
     }
   };
 
   const registerWithEmail = async (email: string, pass: string) => {
-    if (isFirebaseConfigured && auth) {
-        try {
-          await createUserWithEmailAndPassword(auth, email, pass);
-          showToast("Compte créé avec succès !", "success");
-        } catch (error: any) {
-          let msg = "Erreur d'inscription";
-          if (error.code === 'auth/email-already-in-use') msg = "Email déjà utilisé";
-          if (error.code === 'auth/weak-password') msg = "Mot de passe trop court (6 min)";
-          showToast(msg, "error");
-          throw error;
-        }
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        showToast('Compte créé ! Vérifiez votre email pour confirmer.', 'success');
+      } catch (error: any) {
+        const msg = SUPABASE_AUTH_ERROR_MESSAGES[error.code] || error.message || "Erreur d'inscription";
+        showToast(msg, 'error');
+        throw error;
+      }
     } else {
-        // Mock Register
-        loginWithEmail(email, pass);
+      // Mock Register
+      loginWithEmail(email, pass);
     }
   };
 
   const logout = async () => {
-    if (window.confirm("Se déconnecter ?")) {
-      if (isFirebaseConfigured && auth) {
-          try {
-            await signOut(auth);
-            setUser(null);
-            showToast("À bientôt !", "info");
-          } catch (error) {
-            showToast("Erreur lors de la déconnexion", "error");
-          }
-      } else {
-          // Mock Logout
-          localStorage.removeItem('demo_user_session');
+    if (window.confirm('Se déconnecter ?')) {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.auth.signOut();
           setUser(null);
-          showToast("Déconnexion locale effectuée", "info");
-          window.location.reload();
+          showToast('À bientôt !', 'info');
+        } catch (error) {
+          showToast('Erreur lors de la déconnexion', 'error');
+        }
+      } else {
+        // Mock Logout
+        localStorage.removeItem('demo_user_session');
+        setUser(null);
+        showToast('Déconnexion locale effectuée', 'info');
+        window.location.reload();
       }
     }
   };
@@ -210,10 +218,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) {
       const updated = { ...user, ...updates };
       setUser(updated);
-      if (!isFirebaseConfigured) {
-          localStorage.setItem('demo_user_session', JSON.stringify(updated));
+      if (!isSupabaseConfigured) {
+        localStorage.setItem('demo_user_session', JSON.stringify(updated));
       }
-      showToast("Profil mis à jour", "success");
+      showToast('Profil mis à jour', 'success');
     }
   };
 
@@ -226,13 +234,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addRoommate = (name: string) => {
     if (!roommates.includes(name)) {
       setRoommates([...roommates, name]);
-      showToast(`${name} ajouté(e) !`, "success");
+      showToast(`${name} ajouté(e) !`, 'success');
     }
   };
 
   const removeRoommate = (name: string) => {
     setRoommates(prev => prev.filter(r => r !== name));
-    showToast(`${name} retiré(e).`, "info");
+    showToast(`${name} retiré(e).`, 'info');
   };
 
   const completeOnboarding = (profile: OnboardingProfile, setInventoryCallback: (items: any) => void) => {
@@ -253,9 +261,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider value={{
-      user, firebaseUser, hasOnboarded, isDarkMode, roommates, 
+      user, supabaseUser, hasOnboarded, isDarkMode, roommates,
       loginWithGoogle, loginWithEmail, registerWithEmail,
-      logout, updateUser, upgradeToPremium, completeOnboarding, 
+      logout, updateUser, upgradeToPremium, completeOnboarding,
       toggleDarkMode, addRoommate, removeRoommate, hasSeenTutorial, completeTutorial
     }}>
       {!isLoading && children}
