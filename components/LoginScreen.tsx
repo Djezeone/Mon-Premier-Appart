@@ -131,7 +131,7 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
         <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800 flex gap-3 items-start">
             <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <p className="text-[10px] text-amber-700 dark:text-amber-300 italic">
-                <b>Note :</b> Si vous ne voyez pas votre projet Firebase, assurez-vous de l'avoir créé sur <a href="https://console.firebase.google.com" target="_blank" className="underline font-bold">console.firebase.google.com</a> et d'avoir activé les méthodes d'authentification.
+                <b>Note :</b> Sans configuration Supabase, l'application fonctionne en mode démo local. Créez un projet sur <a href="https://supabase.com" target="_blank" className="underline font-bold">supabase.com</a> et renseignez les variables <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code>.
             </p>
         </div>
       </div>
