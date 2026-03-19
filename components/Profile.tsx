@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { User, HousingInfo } from '../types';
 import { ArrowLeft, Crown, Edit2, Mail, Calendar, CreditCard, LogOut, Camera, Handshake, MapPin, Home, ArrowUpCircle } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 interface ProfileProps {
   user: User;
@@ -12,6 +13,7 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onUpgrade, onLogout, goBack }) => {
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(user.name);
   const [tempWorkerName, setTempWorkerName] = useState(user.socialWorkerName || '');
@@ -248,7 +250,11 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onUpgrade, onLogo
                                 <span className="font-bold tracking-wider text-xs uppercase">Membre Gold</span>
                             </div>
                             <h3 className="text-xl font-bold mb-1">Abonnement Actif</h3>
-                            <p className="text-gray-400 text-sm">Prochain prélèvement le 01/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
+                            <p className="text-gray-400 text-sm">Prochain prélèvement le {(() => {
+                                const d = new Date();
+                                d.setMonth(d.getMonth() + 1);
+                                return `01/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                            })()}</p>
                         </div>
                         <div className="text-right">
                              <span className="text-2xl font-bold">0,99€</span>
@@ -256,10 +262,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onUpgrade, onLogo
                         </div>
                     </div>
                     <div className="mt-6 flex gap-3">
-                        <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors border border-white/10">
+                        <button onClick={() => showToast('Gestion d\'abonnement bientôt disponible', 'info')} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors border border-white/10">
                             Gérer
                         </button>
-                        <button className="flex-1 text-gray-400 hover:text-white text-sm">
+                        <button onClick={() => showToast('Historique des factures bientôt disponible', 'info')} className="flex-1 text-gray-400 hover:text-white text-sm">
                             Factures
                         </button>
                     </div>

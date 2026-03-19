@@ -3,11 +3,7 @@ import React, { useState } from 'react';
 import { Loader2, Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface LoginScreenProps {
-  onLogin: () => Promise<void>; // This prop is kept for compatibility but we use useAuth now
-}
-
-const LoginScreen: React.FC<LoginScreenProps> = () => {
+const LoginScreen: React.FC = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'register'>('login');

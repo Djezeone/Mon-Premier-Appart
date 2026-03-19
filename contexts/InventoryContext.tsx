@@ -370,6 +370,30 @@ export const InventoryProvider: React.FC<{ children: ReactNode }> = ({ children 
             setInventory(data.inventory);
             syncUpdates({ inventory: data.inventory });
         }
+        if (data.adminTasks) {
+            setAdminTasks(data.adminTasks);
+            syncUpdates({ admin_tasks: data.adminTasks });
+        }
+        if (data.dailyGroceries) {
+            setDailyGroceries(data.dailyGroceries);
+            syncUpdates({ daily_groceries: data.dailyGroceries });
+        }
+        if (data.boxCounts) {
+            setBoxCounts(data.boxCounts);
+            syncUpdates({ box_counts: data.boxCounts });
+        }
+        if (data.movingDate !== undefined) {
+            setMovingDateState(data.movingDate);
+            syncUpdates({ moving_date: data.movingDate });
+        }
+        if (data.furnitureVolume !== undefined) {
+            setFurnitureVolumeState(data.furnitureVolume);
+            syncUpdates({ furniture_volume: data.furnitureVolume });
+        }
+        if (data.snapshots) {
+            setSnapshots(data.snapshots);
+            syncUpdates({ snapshots: data.snapshots });
+        }
     };
 
     const resetData = async () => {

@@ -109,7 +109,7 @@ const AppContent: React.FC = () => {
       });
   };
 
-  if (!user) return <LoginScreen onLogin={async () => {}} />;
+  if (!user) return <LoginScreen />;
   if (!hasOnboarded) return <Onboarding onComplete={(p) => completeOnboarding(p, setInventory)} />;
 
   return (

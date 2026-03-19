@@ -15,7 +15,6 @@ interface ChatInterfaceProps {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   onClearChat: () => void;
   roommates: string[];
-  partnerName?: string | null;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ inventory, adminTasks, boxCounts, updateInventory, messages, setMessages, onClearChat, roommates }) => {

@@ -66,10 +66,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, onToggleTask, updateTask
 
   // Letter Generator Form State
   const [formData, setFormData] = useState({
-      oldAddress: '10 rue de la Paix, 75000 Paris',
-      newAddress: '25 avenue de la Liberté, 69000 Lyon',
+      oldAddress: '',
+      newAddress: '',
       date: new Date().toLocaleDateString('fr-FR'),
-      contractNum: '123456789'
+      contractNum: ''
   });
 
   const getGeneratedLetter = () => {
@@ -91,6 +91,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, onToggleTask, updateTask
       element.download = `${selectedTemplate?.id}_document.txt`;
       document.body.appendChild(element);
       element.click();
+      document.body.removeChild(element);
+      URL.revokeObjectURL(element.href);
   };
 
   const addToCalendar = (e: React.MouseEvent, taskName: string, deadline: Date) => {
@@ -119,6 +121,8 @@ END:VCALENDAR`;
       element.download = `${taskName.replace(/\s/g, '_')}.ics`;
       document.body.appendChild(element);
       element.click();
+      document.body.removeChild(element);
+      URL.revokeObjectURL(element.href);
   };
 
   const handleDateChange = (id: string, newDate: string) => {
