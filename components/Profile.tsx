@@ -59,6 +59,12 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onUpgrade, onLogo
       onUpdateUser({ hasSocialWorker: enabled });
   };
 
+  const nextBillingDate = (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 1);
+      return `01/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  })();
+
   return (
     <div className="pb-24 min-h-full dark:text-gray-100 animate-fade-in">
         
@@ -250,11 +256,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onUpgrade, onLogo
                                 <span className="font-bold tracking-wider text-xs uppercase">Membre Gold</span>
                             </div>
                             <h3 className="text-xl font-bold mb-1">Abonnement Actif</h3>
-                            <p className="text-gray-400 text-sm">Prochain prélèvement le {(() => {
-                                const d = new Date();
-                                d.setMonth(d.getMonth() + 1);
-                                return `01/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                            })()}</p>
+                            <p className="text-gray-400 text-sm">Prochain prélèvement le {nextBillingDate}</p>
                         </div>
                         <div className="text-right">
                              <span className="text-2xl font-bold">0,99€</span>
