@@ -27,8 +27,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, goBack }) => {
   };
 
   const openLink = (url: string) => {
-      // Simulation of tracking click
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (

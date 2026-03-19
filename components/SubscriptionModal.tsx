@@ -149,18 +149,18 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose, onSucces
                     <div>
                         <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Numéro de carte</label>
                         <div className="relative">
-                            <input type="text" placeholder="0000 0000 0000 0000" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 pl-10 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" defaultValue="4242 4242 4242 4242" />
+                            <input type="text" placeholder="0000 0000 0000 0000" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 pl-10 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" />
                             <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
                         </div>
                     </div>
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Expiration</label>
-                            <input type="text" placeholder="MM/AA" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" defaultValue="12/28" />
+                            <input type="text" placeholder="MM/AA" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-xs font-medium text-gray-500 uppercase mb-1">CVC</label>
-                            <input type="text" placeholder="123" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" defaultValue="123" />
+                            <input type="text" placeholder="123" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white" />
                         </div>
                     </div>
                     
@@ -169,7 +169,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose, onSucces
                             Payer 0,99€
                         </button>
                         <p className="text-[10px] text-center text-gray-400 mt-3 flex items-center justify-center gap-1">
-                            <Lock size={10} /> Paiement chiffré SSL 256-bits (Simulation)
+                            <Lock size={10} /> Mode Démonstration – Aucun paiement réel ne sera effectué
                         </p>
                     </div>
                 </form>

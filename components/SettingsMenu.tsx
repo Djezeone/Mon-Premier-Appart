@@ -22,7 +22,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
     isDarkMode, toggleDarkMode, inventory, user, currentXP, currentLevel, chatHistory, onImport, onReset, goBack
 }) => {
   const { roommates, addRoommate, removeRoommate } = useAuth();
-  const { snapshots, createSnapshot, restoreSnapshot, deleteSnapshot } = useInventory();
+  const { snapshots, createSnapshot, restoreSnapshot, deleteSnapshot, adminTasks, dailyGroceries, boxCounts, movingDate, furnitureVolume } = useInventory();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newRoommateName, setNewRoommateName] = useState('');
@@ -40,7 +40,13 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
             level: currentLevel
         },
         inventory: inventory,
-        chatHistory: chatHistory
+        adminTasks: adminTasks,
+        dailyGroceries: dailyGroceries,
+        boxCounts: boxCounts,
+        movingDate: movingDate,
+        furnitureVolume: furnitureVolume,
+        chatHistory: chatHistory,
+        snapshots: snapshots
     };
 
     const dataStr = JSON.stringify(backupData, null, 2);
@@ -179,7 +185,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                                         <p className="text-[11px] font-bold text-gray-800 dark:text-gray-200 truncate">{snap.label}</p>
                                         <p className="text-[9px] text-gray-400">Capture effectuée le {new Date(snap.timestamp).toLocaleDateString()}</p>
                                     </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <button 
                                             onClick={() => { if(window.confirm(`Restaurer cet ancrage ?\nToute progression actuelle sera remplacée.`)) restoreSnapshot(snap.id); }}
                                             className="p-1.5 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded"
